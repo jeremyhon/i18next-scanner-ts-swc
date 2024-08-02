@@ -1,20 +1,20 @@
 {
-  "name": "i18next-scanner-typescript",
-  "version": "1.2.1",
+  "name": "i18next-scanner-ts-swc",
+  "version": "1.0.0",
   "description": "i18next-scanner Typescript transform",
   "repository": {
     "type": "git",
-    "url": "git+ssh://git@github.com/nucleartux/i18next-scanner-typescript.git"
+    "url": "git+ssh://git@github.com:jeremyhon/i18next-scanner-ts-swc.git"
   },
   "main": "src/index.js",
-  "author": "Igor Adrov",
+  "author": "Jeremy Hon",
   "license": "MIT",
   "private": false,
   "devDependencies": {
-    "typescript": "^5.3.2"
+    "@swc/core": "^1.7.4"
   },
   "peerDependencies": {
-    "typescript": "5.x"
+    "@swc/core": "^1.7.4"
   },
   "publishConfig": {
     "access": "public"

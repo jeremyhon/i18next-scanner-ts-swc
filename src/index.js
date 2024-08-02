@@ -1,34 +1,62 @@
-const fs = require("fs");
+const fs = require("fs").promises;
 const path = require("path");
-const typescript = require("typescript");
+const swc = require("@swc/core");
 
-module.exports = function typescriptTransform(
+module.exports = function swcTransform(
   options = {
-    tsOptions: {
-      target: "es2018",
+    swcOptions: {
+      jsc: {
+        parser: {
+          syntax: "typescript",
+          tsx: true,
+        },
+        target: "es2018",
+      },
+      module: {
+        type: "commonjs",
+      },
     },
     extensions: [".ts", ".tsx"],
+    concurrency: 4, // Number of files to process in 'parallel'
   },
-  transformFn,
+  transformFn
 ) {
-  return function transform(file, enc, done) {
-    const { base, ext } = path.parse(file.path);
+  return async function transform(file, enc, done) {
+    const files = Array.isArray(file) ? file : [file];
+    const concurrency = options.concurrency || 4;
 
-    if (options.extensions.includes(ext) && !base.includes(".d.ts")) {
-      const content = fs.readFileSync(file.path, enc);
+    const processFile = async (file) => {
+      const { base, ext } = path.parse(file.path);
 
-      const { outputText } = typescript.transpileModule(content, {
-        compilerOptions: options.tsOptions,
-        fileName: path.basename(file.path),
-      });
+      if (options.extensions.includes(ext) && !base.includes(".d.ts")) {
+        try {
+          const content = await fs.readFile(file.path, enc);
+          const { code } = await swc.transform(content, {
+            filename: path.basename(file.path),
+            ...options.swcOptions,
+          });
 
-      if (typeof transformFn === 'function') {
-        transformFn.call(this, outputText, file, enc, done);
-        return;
+          if (typeof transformFn === "function") {
+            await new Promise((resolve) =>
+              transformFn.call(this, code, file, enc, resolve)
+            );
+          } else {
+            this.parser.parseTransFromString(code);
+            this.parser.parseFuncFromString(code);
+          }
+        } catch (error) {
+          console.error(`Error processing ${file.path}:`, error);
+        }
       }
+    };
 
-      this.parser.parseTransFromString(outputText);
-      this.parser.parseFuncFromString(outputText);
+    const processBatch = async (batch) => {
+      await Promise.all(batch.map(processFile));
+    };
+
+    for (let i = 0; i < files.length; i += concurrency) {
+      const batch = files.slice(i, i + concurrency);
+      await processBatch(batch);
     }
 
     done();

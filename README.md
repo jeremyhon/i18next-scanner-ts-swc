@@ -1,27 +1,27 @@
-## i18next-scanner-typescript
+## i18next-scanner-ts-swc
 
-Typescript support for [i18next-scanner](https://github.com/i18next/i18next-scanner/)
+Typescript support for [i18next-scanner](https://github.com/i18next/i18next-scanner/) (via swc)
 
 ## Install
 
 ```bash
-yarn add -D i18next-scanner-typescript
+yarn add -D @swc/core i18next-scanner-ts-swc
 ```
 
 ## Usage
 
 ```js
-const typescriptTransform = require('i18next-scanner-typescript');
+const typescriptTransform = require("i18next-scanner-ts-swc");
 
 module.exports = {
   options: {
     func: {
       // don't pass ts or tsx here!
-      extensions: ['.js', '.jsx'],
+      extensions: [".js", ".jsx"],
     },
     trans: {
       // don't pass ts or tsx here!
-      extensions: ['.js', '.jsx'],
+      extensions: [".js", ".jsx"],
     },
   },
   // your i18next-scanner config
@@ -29,12 +29,21 @@ module.exports = {
   transform: typescriptTransform(
     // options
     {
-      // default value for extensions
-      extensions: [".ts", ".tsx"],
-      // optional ts configuration
-      tsOptions: {
-        target: "es2017",
+      // these are the default options
+      swcOptions: {
+        jsc: {
+          parser: {
+            syntax: "typescript",
+            tsx: true,
+          },
+          target: "es2018",
+        },
+        module: {
+          type: "commonjs",
+        },
       },
+      extensions: [".ts", ".tsx"],
+      concurrency: 4, // Number of files to process in 'parallel'
     },
 
     // optional custom transform function
@@ -44,7 +53,7 @@ module.exports = {
       parser.parseFuncFromString(outputText);
 
       done();
-    },
+    }
   ),
 };
 ```
