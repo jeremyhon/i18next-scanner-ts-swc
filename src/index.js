@@ -2,25 +2,29 @@ const fs = require("fs").promises;
 const path = require("path");
 const swc = require("@swc/core");
 
-module.exports = function swcTransform(
-  options = {
-    swcOptions: {
-      jsc: {
-        parser: {
-          syntax: "typescript",
-          tsx: true,
-        },
-        target: "es2018",
+const defaultOptions = {
+  extensions: [".ts", ".tsx"],
+  concurrency: 4,
+  swcOptions: {
+    jsc: {
+      parser: {
+        syntax: "typescript",
+        tsx: true,
       },
-      module: {
-        type: "commonjs",
-      },
+      target: "es2018",
     },
-    extensions: [".ts", ".tsx"],
-    concurrency: 4, // Number of files to process in 'parallel'
-  },
+    module: {
+      type: "commonjs",
+    },
+  }
+};
+
+module.exports = function swcTransform(
+  userOptions,
   transformFn
 ) {
+  const options = deepMerge({}, defaultOptions, userOptions);
+
   return async function transform(file, enc, done) {
     const files = Array.isArray(file) ? file : [file];
     const concurrency = options.concurrency || 4;
@@ -62,3 +66,25 @@ module.exports = function swcTransform(
     done();
   };
 };
+
+function isObject(item) {
+  return item && typeof item === "object" && !Array.isArray(item);
+}
+
+function deepMerge(target, ...sources) {
+  if (!sources.length) return target;
+  const source = sources.shift();
+
+  if (isObject(target) && isObject(source)) {
+    for (const key in source) {
+      if (isObject(source[key])) {
+        if (!target[key]) Object.assign(target, { [key]: {} });
+        deepMerge(target[key], source[key]);
+      } else {
+        Object.assign(target, { [key]: source[key] });
+      }
+    }
+  }
+
+  return deepMerge(target, ...sources);
+}
